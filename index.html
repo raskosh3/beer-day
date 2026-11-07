@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сегодня пьём пиво?</title>
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --card: #1a1a1a;
+      --text: #f5f5f5;
+      --accent: #f5a623;
+      --muted: #888;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .container { text-align: center; max-width: 600px; width: 100%; }
+
+    h1 {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
+    }
+
+    /* ===== Бокал пива ===== */
+    .beer-scene {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2rem;
+      height: 160px;
+      align-items: flex-end;
+    }
+
+    .glass {
+      width: 70px;
+      height: 130px;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      border-top: none;
+      border-radius: 4px 4px 10px 10px;
+      position: relative;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset -6px 0 8px rgba(255, 255, 255, 0.04),
+                  inset 6px 0 8px rgba(0, 0, 0, 0.25);
+    }
+
+    .liquid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      background: linear-gradient(to top, #a86206, #f5a623);
+      transition: height 1s cubic-bezier(0.34, 1.2, 0.64, 1);
+      z-index: 1;
+    }
+
+    .foam {
+      position: absolute;
+      left: -4%;
+      right: -4%;
+      bottom: 0;
+      height: 0;
+      background: radial-gradient(ellipse at top, #fffaf0, #f0dcb4);
+      border-radius: 50% 50% 0 0 / 18px 18px 0 0;
+      transition: height 0.5s ease 0.6s, bottom 1s cubic-bezier(0.34, 1.2, 0.64, 1);
+      z-index: 2;
+      opacity: 0.95;
+    }
+
+    .bubble {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: 50%;
+      bottom: 0;
+      opacity: 0;
+      z-index: 3;
+    }
+    .b1 { width: 4px; height: 4px; left: 22%; }
+    .b2 { width: 3px; height: 3px; left: 50%; }
+    .b3 { width: 5px; height: 5px; left: 74%; }
+
+    .glass.poured .liquid { height: 82%; }
+    .glass.poured .foam { bottom: 78%; height: 24px; }
+    .glass.poured .bubble { animation: bubbleUp 2s ease-in infinite; }
+    .glass.poured .b1 { animation-delay: 0s; }
+    .glass.poured .b2 { animation-delay: 0.7s; }
+    .glass.poured .b3 { animation-delay: 1.3s; }
+
+    @keyframes bubbleUp {
+      0%   { bottom: 5%;  opacity: 0; }
+      15%  { opacity: 0.85; }
+      85%  { opacity: 0.3; }
+      100% { bottom: 78%; opacity: 0; }
+    }
+
+    /* ===== Кнопка ===== */
+    .btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      padding: 1rem 2.5rem;
+      font-size: 1.15rem;
+      font-weight: 600;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+      box-shadow: 0 4px 20px rgba(245, 166, 35, 0.25);
+    }
+    .btn:hover:not(:disabled) { transform: scale(1.04); box-shadow: 0 6px 28px rgba(245, 166, 35, 0.4); }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+
+    /* ===== Результат ===== */
+    .result {
+      margin-top: 2.5rem;
+      background: var(--card);
+      border-radius: 20px;
+      padding: 2rem 1.5rem;
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .result.visible {
+      animation: fadeInUp 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+    }
+
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .holiday-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .holiday-name {
+      font-size: clamp(1.2rem, 3.5vw, 1.6rem);
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1.3;
+    }
+
+    .holiday-date {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: -0.25rem;
+    }
+
+    .holiday-desc {
+      font-size: 0.95rem;
+      color: #ccc;
+      line-height: 1.5;
+      max-width: 95%;
+      text-align: center;
+    }
+
+    .quote {
+      font-size: 1rem;
+      color: var(--accent);
+      font-style: italic;
+      max-width: 90%;
+      line-height: 1.5;
+      margin-top: 0.5rem;
+    }
+    .quote::before { content: '«'; }
+    .quote::after  { content: '»'; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Сегодня пьём пиво?</h1>
+
+    <div class="beer-scene">
+      <div class="glass" id="glass">
+        <div class="liquid"></div>
+        <div class="foam"></div>
+        <div class="bubble b1"></div>
+        <div class="bubble b2"></div>
+        <div class="bubble b3"></div>
+      </div>
+    </div>
+
+    <button class="btn" id="pourBtn">Узнать повод</button>
+
+    <div class="result" id="result">
+      <span class="holiday-label" id="holidayLabel"></span>
+      <span class="holiday-name" id="holidayName"></span>
+      <span class="holiday-date" id="holidayDate"></span>
+      <span class="holiday-desc" id="holidayDesc"></span>
+      <span class="quote" id="quote"></span>
+    </div>
+  </div>
+
+  <script>
+    const COUNTRY_CODE = 'RU';
+    const YEAR = new Date().getFullYear();
+    const API_URL = `https://date.nager.at/api/v4/Holidays/${COUNTRY_CODE}/${YEAR}`;
+
+    // 1. Государственные праздники с исторической справкой
+    const STATE_HOLIDAY_INFO = {
+      "New Year's Day": { name: 'Новый год', desc: 'Самый любимый праздник в России. Традиция отмечать его 1 января закрепилась указом Петра I в 1699 году.' },
+      'New Year holiday': { name: 'Новогодние каникулы', desc: 'Период отдыха, который официально начали устанавливать с 2005 года. Время «прийти в себя» после главной ночи.' },
+      'Christmas Day (Orthodox)': { name: 'Рождество Христово', desc: 'Один из главных православных праздников, отмечаемый 7 января. Традиция праздновать Рождество на Руси восходит к Крещению в 988 году.' },
+      'Defender of the Fatherland Day': { name: 'День защитника Отечества', desc: 'Отмечается 23 февраля. Праздник берёт начало в 1918 году как день создания Красной армии.' },
+      "International Women's Day": { name: 'Международный женский день', desc: '8 Марта — день солидарности женщин в борьбе за равные права. В России впервые отмечен в 1913 году.' },
+      'Labour Day': { name: 'Праздник Весны и Труда', desc: '1 Мая. В России впервые отметили в 1890 году как день солидарности трудящихся.' },
+      'Victory Day': { name: 'День Победы', desc: '9 Мая — день победы советского народа в Великой Отечественной войне. Священный праздник с парадом и минутой молчания.' },
+      'Russia Day': { name: 'День России', desc: '12 июня. В этот день в 1990 году была принята Декларация о государственном суверенитете РСФСР.' },
+      'Unity Day': { name: 'День народного единства', desc: '4 ноября. Учреждён в 2005 году в память об освобождении Москвы от польских интервентов в 1612 году.' },
+    };
+
+    // 2. Реальные неофициальные праздники (с фиксированными или плавающими датами)
+    const LOCAL_HOLIDAYS = [
+      {
+        month: 8, // Август
+        day: null, // Первая пятница
+        name: 'Международный день пива',
+        desc: 'Отмечается в первую пятницу августа. Учреждён в 2007 году в Калифорнии владельцем бара Джессом Авшаломовым. Сегодня это праздник всех любителей пенного по всему миру.'
+      },
+      {
+        month: 6, // Июнь
+        day: null, // Вторая суббота
+        name: 'День пивовара в России',
+        desc: 'Отмечается во вторую субботу июня. Учреждён в 2003 году Союзом российских пивоваров. Профессиональный праздник всех, кто причастен к созданию пива.'
+      },
+    ];
+
+    // 3. Абсурдные и неофициальные праздники (выпадают случайно, если сегодня нет других)
+    const ABSURD_HOLIDAYS = [
+      { name: 'День Ручки', desc: 'Праздник всех, кто хоть раз что-то подписал. Отмечается с момента изобретения первой шариковой ручки. Отличный повод взять ручку... и отложить её, чтобы открыть пиво.' },
+      { name: 'День Карандаша', desc: 'Карандаши умеют стираться, в отличие от наших проблем. Отличный повод отпраздновать гибкость и возможность начать всё заново.' },
+      { name: 'День Поиска Повода', desc: 'Мета-праздник. Сегодня мы ищем повод, чтобы выпить. И, кажется, нашли. За это и выпьем!' },
+      { name: 'Всемирный день левой пятки', desc: 'Пятка — это опора. Левая — для равновесия. Отметьте этот день, чтобы ваше равновесие не пошатнулось.' },
+      { name: 'День любимой кружки', desc: 'Кружка — это лучший друг пива. Сегодня она заслуживает того, чтобы её наполнили до краёв. Желательно чем-то холодным.' },
+      { name: 'Праздник "Сделаю потом"', desc: 'Научно доказано, что 90% дел можно сделать завтра. Сегодня официально разрешается ничего не делать. Пиво в помощь.' },
+      { name: 'День потерянного носка', desc: 'Каждый год мы теряем носки. Сегодня мы пьём за их память и за то, чтобы вторая половинка наконец нашлась. Или за то, чтобы забить на это.' },
+      { name: 'День объятий с холодильником', desc: 'Холодильник — это храм еды и пива. Обнимите его, откройте дверцу и достаньте что-нибудь освежающее.' },
+      { name: 'День "Я устал, я ухожу"', desc: 'Легендарная фраза, которая теперь стала неофициальным гимном всех, кто устал. Сегодня можно уйти. В бар или к холодильнику.' },
+      { name: 'Праздник круглого стола', desc: 'Когда стол круглый, никто не главный. Идеальная геометрия для того, чтобы поставить на него бутылку и кружки.' },
+      { name: 'День желтого настроения', desc: 'Жёлтый — цвет солнца и пива. Если вам грустно — посмотрите на пиво. Если весело — тоже посмотрите.' },
+      { name: 'День вымышленного друга', desc: 'У каждого был воображаемый друг. Сегодня он приходит в гости. И он, конечно, не с пустыми руками. Он приносит пиво.' },
+      { name: 'Праздник нераспечатанной коробки', desc: 'Коробка стоит в углу уже полгода. Сегодня мы торжественно обещаем её разобрать. Завтра. А сегодня — пиво.' },
+      { name: 'День подвига батарейки', desc: 'Она держалась до последнего, мигая красным. Сегодня мы чтим её память и меняем на новую. Под пиво.' },
+      { name: 'День вежливого отказа', desc: 'Сегодня можно отказаться от любых дел, сославшись на этот праздник. Главное — отказаться с улыбкой и бокалом в руке.' }
+    ];
+
+    const QUOTES = [
+      'Пиво — это ещё одно доказательство того, что Бог любит нас и хочет, чтобы мы были счастливы.',
+      'Пиво светлое — расслабиться, тёмное — пофилософствовать.',
+      'Жажда деятельности легко утоляется пивом.',
+      'Ничто так не согревает душу, как холодное пиво.',
+      'Пиво — удивительный напиток. Оно всегда доставляет удовольствие.',
+      'Лучше пива после работы может быть только пиво вместо работы.',
+      'Будущее, как и пиво, бывает светлым, а бывает тёмным — на выбор.',
+      'Один глоток пива утоляет жажду, вдохновляет и открывает второе дыхание.',
+      'Надо пить для пополнения сил, но не для печали.',
+      'Пиво — напиток интеллектуалов.',
+    ];
+
+    const btn = document.getElementById('pourBtn');
+    const glass = document.getElementById('glass');
+    const resultBox = document.getElementById('result');
+    const labelEl = document.getElementById('holidayLabel');
+    const nameEl = document.getElementById('holidayName');
+    const dateEl = document.getElementById('holidayDate');
+    const descEl = document.getElementById('holidayDesc');
+    const quoteEl = document.getElementById('quote');
+
+    const randomItem = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    function getToday() {
+      const d = new Date();
+      return {
+        iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        month: d.getMonth() + 1,
+        day: d.getDate(),
+        weekday: d.getDay(),
+        dateObj: d
+      };
+    }
+
+    function getLocalHoliday(today) {
+      for (const h of LOCAL_HOLIDAYS) {
+        if (h.month !== today.month) continue;
+        if (h.day === null) {
+          if (h.name.includes('Международный день пива') && today.weekday === 5) {
+            const firstFriday = new Date(today.dateObj.getFullYear(), today.dateObj.getMonth(), 1);
+            while (firstFriday.getDay() !== 5) firstFriday.setDate(firstFriday.getDate() + 1);
+            if (today.day === firstFriday.getDate()) return h;
+          }
+          if (h.name.includes('День пивовара') && today.weekday === 6) {
+            const secondSaturday = new Date(today.dateObj.getFullYear(), today.dateObj.getMonth(), 8);
+            while (secondSaturday.getDay() !== 6) secondSaturday.setDate(secondSaturday.getDate() + 1);
+            if (today.day === secondSaturday.getDate()) return h;
+          }
+        } else if (h.day === today.day) {
+          return h;
+        }
+      }
+      return null;
+    }
+
+    async function fetchHoliday(today) {
+      // 1. Государственный праздник
+      try {
+        const res = await fetch(API_URL);
+        if (res.ok) {
+          const holidays = await res.json();
+          const hit = holidays.find(h => h.date === today.iso);
+          if (hit && STATE_HOLIDAY_INFO[hit.name]) {
+            const info = STATE_HOLIDAY_INFO[hit.name];
+            return { name: info.name, date: hit.date, desc: info.desc, source: 'state' };
+          }
+        }
+      } catch (e) {
+        console.warn('Nager.Date API недоступен:', e);
+      }
+
+      // 2. Реальный неофициальный праздник
+      const local = getLocalHoliday(today);
+      if (local) {
+        return {
+          name: local.name,
+          date: `Сегодня, ${today.day}.${String(today.month).padStart(2, '0')}`,
+          desc: local.desc,
+          source: 'local'
+        };
+      }
+
+      // 3. Абсурдный праздник (рандом)
+      const absurd = randomItem(ABSURD_HOLIDAYS);
+      return {
+        name: absurd.name,
+        date: `Сегодня, ${today.day}.${String(today.month).padStart(2, '0')}`,
+        desc: absurd.desc,
+        source: 'absurd'
+      };
+    }
+
+    function retrigger(el, cls) {
+      el.classList.remove(cls);
+      void el.offsetWidth;
+      el.classList.add(cls);
+    }
+
+    function showResult(holiday) {
+      let label = 'Повод на сегодня';
+      if (holiday.source === 'state') label = 'Государственный праздник';
+      if (holiday.source === 'local') label = 'Неофициальный праздник';
+      if (holiday.source === 'absurd') label = 'Случайный повод';
+
+      labelEl.textContent = label;
+      nameEl.textContent = holiday.name;
+      dateEl.textContent = holiday.date;
+      descEl.textContent = holiday.desc;
+      quoteEl.textContent = randomItem(QUOTES);
+
+      retrigger(resultBox, 'visible');
+    }
+
+    function pourBeer() {
+      retrigger(glass, 'poured');
+    }
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Ищем повод...';
+      resultBox.classList.remove('visible');
+
+      const today = getToday();
+      try {
+        const holiday = await fetchHoliday(today);
+        showResult(holiday);
+        pourBeer();
+      } catch (e) {
+        console.error(e);
+        labelEl.textContent = 'Ошибка';
+        nameEl.textContent = 'Не получилось найти повод. Но это не повод не выпить!';
+        dateEl.textContent = '';
+        descEl.textContent = '';
+        quoteEl.textContent = 'Пиво — ещё одно доказательство, что Бог любит нас.';
+        retrigger(resultBox, 'visible');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Узнать повод';
+      }
+    });
+  </script>
+</body>
+</html>
